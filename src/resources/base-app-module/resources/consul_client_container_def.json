@@ -1,0 +1,40 @@
+[
+  {
+    "command": [
+      "agent",
+      "-client=0.0.0.0",
+      "-datacenter=${region}", 
+      "-data-dir=/consul/data",
+      "-ui",
+      "-retry-join",
+      "provider=aws tag_key=\"${consul_tag_key} tag_value=\"${consul_tag_value}\"" 
+    ],
+    "dockerLabels": {
+      "Name": "consul-client"
+    },
+    "entryPoint": [
+      "/usr/local/bin/docker-entrypoint.sh"
+    ],
+    "environment": [
+      {
+        "name": "CONSUL_BIND_INTERFACE",
+        "value": "eth0"
+      },
+      {
+        "name": "enable_debug",
+        "value": "true"
+      }
+    ],
+    "image": "consul:latest",
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-region": "${region}",
+        "awslogs-group": "${log_group}",
+        "awslogs-stream-prefix": "consul-client-ecs-"
+      }
+    },
+    "memoryReservation": 128,
+    "name": "consul-client"
+  }
+]

@@ -1,0 +1,186 @@
+# The following evironment variables need to be defined on the project on circleci.com: (they must match aws actual resources)
+# APP_NAME
+# MS_NAME
+# AWS_ACCOUNT_ID
+# AWS_DEFAULT_REGION
+# AWS_ACCESS_KEY_ID
+# AWS_SECRET_ACCESS_KEY
+
+
+version: 2.1
+orbs:
+  aws-cli: circleci/aws-cli@0.1.16
+  aws-ecr: circleci/aws-ecr@6.5.0
+  aws-ecs: circleci/aws-ecs@0.0.22
+
+references:
+  container_config_server: &container_config_server
+    environment:
+      # Configure the JVM and Gradle to avoid OOM errors
+      _JAVA_OPTIONS: "-Xmx3g"
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=2"
+    docker:
+      - image: circleci/openjdk:8-jdk-stretch
+        environment:
+          GRADLE_IMAGE_NAME: build-output-image
+          SPRING_PROFILES_ACTIVE: test
+          
+  container_config_python: &container_config_python
+    docker:
+      - image: circleci/python:3.6.1
+    environment:
+      AWS_DEFAULT_OUTPUT: json
+
+  set_build_env_variables: &set_build_env_variables
+    run:
+      name: Set environment variables
+      command: |
+        if [ "${CIRCLE_BRANCH}" == "master" ]; then
+          echo '**** MASTER branch: using -prod environment ******'
+          echo 'export ACTIVE_ENV="staging"' >> $BASH_ENV
+        else
+          echo '**** ${CIRCLE_BRANCH} branch: using -qa environment ******'
+          echo 'export ACTIVE_ENV="qa"' >> $BASH_ENV
+        fi
+        echo 'export ECS_CLUSTER_NAME="${APP_NAME}-${ACTIVE_ENV}"' >> $BASH_ENV
+        echo 'export ECS_SERVICE_NAME="${APP_NAME}-${MS_NAME}-${ACTIVE_ENV}"' >> $BASH_ENV
+        echo 'export ECR_REPO_NAME="${ECS_SERVICE_NAME}"' >> $BASH_ENV
+        echo 'export ECR_ACCOUNT_URL="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"' >> $BASH_ENV
+        echo 'export FULL_IMAGE_NAME="${ECR_ACCOUNT_URL}/${ECR_REPO_NAME}"' >> $BASH_ENV
+        echo 'export HEALTH_CHECK_PATH="${MS_NAME}/health"' >> $BASH_ENV
+
+  save_gradle_dependencies: &save_gradle_dependencies
+    save_cache: # saves the project gradle dependencies
+      key: gradle-dependencies-{{ .Branch }}-{{ checksum "build.gradle" }}
+      paths:
+        - ~/.gradle
+
+  restore_gradle_dependencies: &restore_gradle_dependencies
+    restore_cache: # restore the saved cache after the first run or if `build.gradle` has changed
+      keys:
+        - gradle-dependencies-{{ .Branch }}-{{ checksum "build.gradle" }}
+        # fallback to using the latest cache if no exact match is found
+        - gradle-dependencies
+
+  fetch_gradle_dependencies: &fetch_gradle_dependencies
+    run:
+      name: Install gradle dependencies
+      command: ./gradlew dependencies
+
+  run_java_tests: &run_java_tests
+    run:
+      name: Run gradle tests
+      command: ./gradlew test
+
+  save_java_tests: &save_java_tests
+    run:
+      name: Save Java tests results
+      command: |
+        mkdir -p ~/test_results/junit/
+        find . -type f -regex ".*/build/test-results/.*xml" -exec cp {} ~/junit/ \;
+      when: always
+
+  gradle_build_docker: &gradle_build_docker
+    run:
+      name: Build Jar, then build docker image and tag it
+      command: |
+        ./gradlew build -x test docker
+        docker tag $GRADLE_IMAGE_NAME $FULL_IMAGE_NAME
+
+  save_docker_image: &save_docker_image
+    run:
+      name: Save image to an archive
+      command: |
+        mkdir docker-image
+        docker save -o docker-image/image.tar $FULL_IMAGE_NAME
+
+  load_docker_image: &load_docker_image
+    run:
+      name: Load docker image
+      command: |
+        docker load --input workspace/docker-image/image.tar
+        docker tag $FULL_IMAGE_NAME $FULL_IMAGE_NAME:$CIRCLE_SHA1
+        docker tag $FULL_IMAGE_NAME $FULL_IMAGE_NAME:latest
+
+  verify_ecs_deployment: &verify_ecs_deployment
+    run:
+      name: Test deployment
+      command: |
+        TARGET_GROUP_ARN=$(aws ecs describe-services --cluster $ECS_CLUSTER_NAME --services $ECS_SERVICE_NAME | jq -r '.services[0].loadBalancers[0].targetGroupArn')
+        ALB_ARN=$(aws elbv2 describe-target-groups --target-group-arns $TARGET_GROUP_ARN | jq -r '.TargetGroups[0].LoadBalancerArns[0]')
+        ALB_DNS_NAME=$(aws elbv2 describe-load-balancers --load-balancer-arns $ALB_ARN | jq -r '.LoadBalancers[0].DNSName')
+        # Test multiple times to verify that the new revision has been deployed across the entire cluster
+        echo "ALB_DNS_NAME:: ${ALB_DNS_NAME}"
+        for attempt in {1..50}; do
+          curl -s --retry 10 http://$ALB_DNS_NAME/$HEALTH_CHECK_PATH | grep -E "UP"
+        done
+
+jobs:
+  build:
+    <<: *container_config_server
+    steps:
+      - checkout
+      - setup_remote_docker
+      - *restore_gradle_dependencies
+      - *fetch_gradle_dependencies
+      - *save_gradle_dependencies
+      - *set_build_env_variables
+      - *run_java_tests
+      - *save_java_tests
+      - store_test_results:
+          path: ~/test_results
+      - *gradle_build_docker
+      - *save_docker_image
+      - persist_to_workspace:
+          root: .
+          paths:
+            - docker-image
+
+  push_image:  
+    <<: *container_config_python
+    steps:
+      - checkout
+      - setup_remote_docker
+      - attach_workspace:
+          at: workspace
+      - aws-cli/install
+      - aws-cli/setup:
+          aws-region: AWS_DEFAULT_REGION
+      - *set_build_env_variables
+      - *load_docker_image
+      - aws-ecr/ecr-login:
+          region: AWS_DEFAULT_REGION
+      - aws-ecr/push-image:
+          account-url: ECR_ACCOUNT_URL
+          repo: '${ECR_REPO_NAME}'
+          tag: '${CIRCLE_SHA1},latest'
+
+  deploy:  
+    <<: *container_config_python
+    steps:
+      - aws-cli/install
+      - aws-cli/setup:
+          aws-region: AWS_DEFAULT_REGION
+      - *set_build_env_variables
+      - aws-ecs/update-service:
+          family: '${ECS_SERVICE_NAME}'
+          cluster-name: '${ECS_CLUSTER_NAME}'
+          container-image-name-updates: 'container=${ECS_SERVICE_NAME},tag=${CIRCLE_SHA1}'
+          verify-revision-is-deployed: true
+      - *verify_ecs_deployment
+
+workflows:
+  build_and_deploy:
+    jobs:
+      - build
+      - push_image:
+          requires:
+            - build
+      - deploy:
+          requires:
+            - push_image
+          filters:
+            branches:
+              only: master
+
+
