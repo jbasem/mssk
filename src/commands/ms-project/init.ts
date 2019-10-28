@@ -74,7 +74,7 @@ export class InitMicroservicePorject extends Command {
     }
 
     this.log(`microservice "${msName}"" will be created.. Gradle artifact: "${group}:${msName}:${version}"`)
-    this.initMicroserviceProjectTemplate(msName, group, version);
+    this.initMicroserviceProjectTemplate(msName!, group, version);
   }
 
   /*
