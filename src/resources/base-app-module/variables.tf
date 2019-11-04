@@ -37,6 +37,27 @@ variable "alb_inbound_cidr_blocks" {
   default = ["0.0.0.0/0"] 
 }
 
+# possible values: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
+variable "alb_active_connections_alarm_comparison_operator" {
+  type = string
+  default = "GreaterThanOrEqualToThreshold"
+}
+
+variable "alb_active_connections_alarm_threshold" {
+  type = number
+  default = 1000
+}
+
+variable "alb_active_connections_alarm_evaluation_periods" {
+  type = number
+  default = 2
+}
+
+variable "alb_active_connections_alarm_period" {
+  type = number
+  default = 120
+}
+
 
 ### Consul
 

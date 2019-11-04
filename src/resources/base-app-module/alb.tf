@@ -43,3 +43,21 @@ module "alb" {
   target_groups_count           = "1"
 }
 
+resource "aws_cloudwatch_metric_alarm" "alb_active_connections" {
+  alarm_name          = "${local.app_name_prefix}-alb-active-connections"
+  metric_name         = "ActiveConnectionCount"
+  namespace           = "AWS/ApplicationELB"
+  statistic           = "Sum"
+  comparison_operator = "${var.alb_active_connections_alarm_comparison_operator}"
+  threshold           = "${var.alb_active_connections_alarm_threshold}"
+  evaluation_periods  = "${var.alb_active_connections_alarm_evaluation_periods}"
+  period              = "${var.alb_active_connections_alarm_period}"
+
+  dimensions = {
+    LoadBalancer = "${module.alb.load_balancer_arn_suffix}"
+  }
+
+  alarm_description = "This metric monitors ALB active connections"
+
+  tags = local.tags
+}

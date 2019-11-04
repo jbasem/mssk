@@ -128,10 +128,14 @@ module "microservice" {
   asg_max_size = 2 # maximum running servers (cannot automatically scale up above that)
   asg_desired_capacity = 2 # desired running servers.
   asg_health_check_grace_period = 300 # seconds
-  asg_alarm_comparison_operator = "GreaterThanOrEqualToThreshold" # Allowed values: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
-  asg_alarm_threshold = 80 # The value against which the specified statistic is compared.
-  asg_alarm_evaluation_periods = 2# The number of periods over which data is compared to the specified threshold.
-  asg_alarm_period = 120  # seconds over which the specified statistic is applied
+  asg_cpu_util_alarm_comparison_operator = "GreaterThanOrEqualToThreshold" # Allowed values: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
+  asg_cpu_util_alarm_threshold = 80 # The value against which the specified statistic is compared.
+  asg_cpu_util_alarm_evaluation_periods = 2# The number of periods over which data is compared to the specified threshold.
+  asg_cpu_util_alarm_period = 120  # seconds over which the specified statistic is applied
+  tg_min_healthy_hosts_alarm_threshold = 0 # The value against which the specified statistic is compared.
+  tg_min_healthy_hosts_alarm_evaluation_periods = 2# The number of periods over which data is compared to the specified threshold.
+  tg_min_healthy_hosts_alarm_period = 120  # seconds over which the specified statistic is applied
+  
 
   # minumum running tasks during a deployment (calculated as: percent * asg_desired_capacity, rounded up). 
   ecs_service_deployment_minimum_healthy_percent = 20 # ***Note***: if the result is equal to asg_min_size, the force deployment is ignored, so deployment might be pending until it can go through.
@@ -165,6 +169,14 @@ module "microservice" {
   db_apply_immediately = false # can be set to true when needed, but generally the changes should be applied in the maintenance window, not immediately
   db_replicas_count = 1
   db_replica_instance_class = "db.t2.micro"
+  db_read_latency_alarm_comparison_operator = "GreaterThanOrEqualToThreshold" # Allowed values: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
+  db_read_latency_alarm_threshold = 3 # seconds
+  db_read_latency_alarm_evaluation_periods = 2# The number of periods over which data is compared to the specified threshold.
+  db_read_latency_alarm_period = 120  # seconds over which the specified statistic is applied
+  db_write_latency_alarm_comparison_operator = "GreaterThanOrEqualToThreshold" # Allowed values: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
+  db_write_latency_alarm_threshold = 3 # seconds
+  db_write_latency_alarm_evaluation_periods = 2# The number of periods over which data is compared to the specified threshold.
+  db_write_latency_alarm_period = 120  # seconds over which the specified statistic is applied
 
   ## Redis cache configs
   redis_instance_class = "cache.t2.micro" # All available types: https://aws.amazon.com/elasticache/pricing/

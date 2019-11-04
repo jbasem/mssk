@@ -20,7 +20,7 @@ resource "aws_alb_target_group" "tg" {
 
 # attach it to loadbalancer
 resource "aws_lb_listener_rule" "tg_rule" {
-  listener_arn = "${local.alb_listner.arn}"
+  listener_arn = "${local.alb.arn}"
 
   action {
     type             = "forward"
@@ -31,4 +31,23 @@ resource "aws_lb_listener_rule" "tg_rule" {
     field  = "path-pattern"
     values = ["${var.url_base_path}/*"]
   }
+}
+
+resource "aws_cloudwatch_metric_alarm" "tg_min_healthy_hosts" {
+  alarm_name          = "${local.ms_name_prefix}-tg-min-healthy-hosts"
+  metric_name         = "HealthyHostCount"
+  namespace           = "AWS/ApplicationELB"
+  statistic           = "Minimum"
+  comparison_operator = "LessThanOrEqualToThreshold"
+  threshold           = "${var.tg_min_healthy_hosts_alarm_threshold}"
+  evaluation_periods  = "${var.tg_min_healthy_hosts_alarm_evaluation_periods}"
+  period              = "${var.tg_min_healthy_hosts_alarm_period}"
+
+  dimensions = {
+    LoadBalancer = "${local.alb.arn_suffix}"
+  }
+
+  alarm_description = "This metric monitors the target group minimum health hosts"
+
+  tags = local.tags
 }

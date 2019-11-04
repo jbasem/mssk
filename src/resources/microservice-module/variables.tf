@@ -115,6 +115,45 @@ variable "db_log_types" {
   default = ["general", "error", "slowquery"]
 }
 
+variable "db_read_latency_alarm_comparison_operator" {
+  type = string
+  default = "GreaterThanOrEqualToThreshold"
+}
+
+variable "db_read_latency_alarm_threshold" {
+  type = number
+  default = 3
+}
+
+variable "db_read_latency_alarm_evaluation_periods" {
+  type = number
+  default = 2
+}
+
+variable "db_read_latency_alarm_period" {
+  type = number
+  default = 120
+}
+
+variable "db_write_latency_alarm_comparison_operator" {
+  type = string
+  default = "GreaterThanOrEqualToThreshold"
+}
+
+variable "db_write_latency_alarm_threshold" {
+  type = number
+  default = 3
+}
+
+variable "db_write_latency_alarm_evaluation_periods" {
+  type = number
+  default = 2
+}
+
+variable "db_write_latency_alarm_period" {
+  type = number
+  default = 120
+}
 
 ## Redis
 
@@ -176,25 +215,41 @@ variable "asg_health_check_grace_period" {
 }
 
 # possible values: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
-variable "asg_alarm_comparison_operator" {
+variable "asg_cpu_util_alarm_comparison_operator" {
   type = string
   default = "GreaterThanOrEqualToThreshold"
 }
 
-variable "asg_alarm_threshold" {
+variable "asg_cpu_util_alarm_threshold" {
   type = number
   default = 80
 }
 
-variable "asg_alarm_evaluation_periods" {
+variable "asg_cpu_util_alarm_evaluation_periods" {
   type = number
   default = 2
 }
 
-variable "asg_alarm_period" {
+variable "asg_cpu_util_alarm_period" {
   type = number
   default = 120
 }
+
+variable "tg_min_healthy_hosts_alarm_threshold" {
+  type = number
+  default = 0
+}
+
+variable "tg_min_healthy_hosts_alarm_evaluation_periods" {
+  type = number
+  default = 2
+}
+
+variable "tg_min_healthy_hosts_alarm_period" {
+  type = number
+  default = 120
+}
+
 
 variable "task_def_soft_memory" {
   type = number

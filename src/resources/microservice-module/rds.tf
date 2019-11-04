@@ -99,3 +99,47 @@ resource "aws_db_instance" "read_replica" {
   backup_retention_period = 0
   skip_final_snapshot = true
 }
+
+
+###################
+## Alarm Metrics
+###################
+
+resource "aws_cloudwatch_metric_alarm" "rds_read_latency" {
+  alarm_name          = "${local.ms_name_prefix}-rds-read-latency"
+  metric_name         = "ReadLatency"
+  namespace           = "AWS/RDS"
+  statistic           = "Average"
+  comparison_operator = "${var.db_read_latency_alarm_comparison_operator}"
+  threshold           = "${var.db_read_latency_alarm_threshold}"
+  evaluation_periods  = "${var.db_read_latency_alarm_evaluation_periods}"
+  period              = "${var.db_read_latency_alarm_period}"
+
+  dimensions = {
+    DBInstanceIdentifier = local.ms_name_prefix # instance identifier
+  }
+
+  alarm_description = "This metric monitors rds read latency"
+
+  tags = local.tags
+}
+
+
+resource "aws_cloudwatch_metric_alarm" "rds_write_latency" {
+  alarm_name          = "${local.ms_name_prefix}-rds-write-latency"
+  metric_name         = "WriteLatency"
+  namespace           = "AWS/RDS"
+  statistic           = "Average"
+  comparison_operator = "${var.db_write_latency_alarm_comparison_operator}"
+  threshold           = "${var.db_write_latency_alarm_threshold}"
+  evaluation_periods  = "${var.db_write_latency_alarm_evaluation_periods}"
+  period              = "${var.db_write_latency_alarm_period}"
+
+  dimensions = {
+    DBInstanceIdentifier = local.ms_name_prefix # instance identifier
+  }
+
+  alarm_description = "This metric monitors rds write latency"
+
+  tags = local.tags
+}

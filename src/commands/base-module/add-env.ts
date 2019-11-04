@@ -132,6 +132,10 @@ module "base_app" {
   # public access to ALB! Should always be public since it's the main entry point for the system (internet facing). So it must always be 0.0.0.0/0 (= anywhere), 
   # unless you don't want the application to be publically reachable.
   alb_inbound_cidr_blocks = ["0.0.0.0/0"] 
+  alb_active_connections_alarm_comparison_operator = "GreaterThanOrEqualToThreshold" # Allowed values: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
+  alb_active_connections_alarm_threshold = 1000 # The value against which the specified statistic is compared.
+  alb_active_connections_alarm_evaluation_periods = 2# The number of periods over which data is compared to the specified threshold.
+  alb_active_connections_alarm_period = 120  # seconds over which the specified statistic is applied
 
 
   ### Consul settings
