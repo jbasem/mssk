@@ -48,3 +48,23 @@ module "asg" {
     },
   ]
 }
+
+resource "aws_cloudwatch_metric_alarm" "asg_cpu_utilization_alarm" {
+  alarm_name          = "${local.ms_name_prefix}-asg-cpu-util"
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  statistic           = "Average"
+  comparison_operator = "${var.asg_alarm_comparison_operator}"
+  threshold           = "${var.asg_alarm_threshold}"
+  evaluation_periods  = "${var.asg_alarm_evaluation_periods}"
+  period              = "${var.asg_alarm_period}"
+
+  dimensions = {
+    AutoScalingGroupName = "${module.asg.this_autoscaling_group_name}"
+  }
+
+  alarm_description = "This metric monitors ec2 cpu utilization"
+  alarm_actions     = ["${module.asg.this_autoscaling_group_arn}"]
+
+  tags = local.tags
+}

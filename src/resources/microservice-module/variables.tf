@@ -175,6 +175,27 @@ variable "asg_health_check_grace_period" {
   default = 300
 }
 
+# possible values: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
+variable "asg_alarm_comparison_operator" {
+  type = string
+  default = "GreaterThanOrEqualToThreshold"
+}
+
+variable "asg_alarm_threshold" {
+  type = number
+  default = 80
+}
+
+variable "asg_alarm_evaluation_periods" {
+  type = number
+  default = 2
+}
+
+variable "asg_alarm_period" {
+  type = number
+  default = 120
+}
+
 variable "task_def_soft_memory" {
   type = number
   default = 512

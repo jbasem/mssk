@@ -127,7 +127,11 @@ module "microservice" {
   asg_min_size = 1 # minmum running servers (cannot automatically scale down below that)
   asg_max_size = 2 # maximum running servers (cannot automatically scale up above that)
   asg_desired_capacity = 2 # desired running servers.
-  asg_health_check_grace_period = 300 # sefconds
+  asg_health_check_grace_period = 300 # seconds
+  asg_alarm_comparison_operator = "GreaterThanOrEqualToThreshold" # Allowed values: GreaterThanOrEqualToThreshold, GreaterThanThreshold, LessThanThreshold, LessThanOrEqualToThreshold.
+  asg_alarm_threshold = 80 # The value against which the specified statistic is compared.
+  asg_alarm_evaluation_periods = 2# The number of periods over which data is compared to the specified threshold.
+  asg_alarm_period = 120  # seconds over which the specified statistic is applied
 
   # minumum running tasks during a deployment (calculated as: percent * asg_desired_capacity, rounded up). 
   ecs_service_deployment_minimum_healthy_percent = 20 # ***Note***: if the result is equal to asg_min_size, the force deployment is ignored, so deployment might be pending until it can go through.
