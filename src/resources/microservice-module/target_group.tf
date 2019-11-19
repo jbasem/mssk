@@ -20,7 +20,7 @@ resource "aws_alb_target_group" "tg" {
 
 # attach it to loadbalancer
 resource "aws_lb_listener_rule" "tg_rule" {
-  listener_arn = "${local.alb.arn}"
+  listener_arn = "${local.alb_listner.arn}"
 
   action {
     type             = "forward"
