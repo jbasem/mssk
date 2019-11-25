@@ -206,7 +206,12 @@ variable "asg_max_size" {
 
 variable "asg_desired_capacity" {
   type = number
-  default = 2
+  default = 1
+}
+
+variable "asg_avg_cpu_utilization_threshold" {
+  type = number
+  default = 90
 }
 
 variable "asg_health_check_grace_period" {

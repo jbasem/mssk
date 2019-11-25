@@ -49,6 +49,20 @@ module "asg" {
   ]
 }
 
+resource "aws_autoscaling_policy" "scale_up" {
+  name                        = "scale_up"
+  policy_type             = "TargetTrackingScaling"
+  estimated_instance_warmup   = 120
+  autoscaling_group_name = "${module.asg.this_autoscaling_group_name}"
+
+  target_tracking_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ASGAverageCPUUtilization"
+    }
+    target_value = "${var.asg_avg_cpu_utilization_threshold}"
+  }
+}
+
 resource "aws_cloudwatch_metric_alarm" "asg_cpu_utilization_alarm" {
   alarm_name          = "${local.ms_name_prefix}-asg-cpu-util"
   metric_name         = "CPUUtilization"
